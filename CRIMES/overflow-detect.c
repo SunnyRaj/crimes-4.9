@@ -106,7 +106,9 @@ int main (int argc, char **argv)
     vmi_read_fd = open(vmi_read_ff, O_RDONLY);      //Open Pipe 1 for Read
     vmi_write_fd = open(vmi_write_ff, O_WRONLY);      //open Pipe 2 for Write
 
-    if (vmi_init(&vmi, VMI_AUTO | VMI_INIT_COMPLETE, name) == VMI_FAILURE) {
+    if (VMI_FAILURE ==
+        vmi_init_complete(&vmi, name, VMI_INIT_DOMAINNAME, NULL,
+            VMI_CONFIG_GLOBAL_FILE_ENTRY, NULL, NULL)) {
         printf("Failed to init LibVMI library.\n");
             return 1;
     }

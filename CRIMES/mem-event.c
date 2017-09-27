@@ -91,9 +91,8 @@ int main(int argc, char **argv)
 
     fprintf(stdout, "[TIMESTAMP] Received vaddr, initializing VMI. %lld ns", ns_timer());
 
-    status = vmi_init(&vmi,
-                      (VMI_XEN | VMI_INIT_COMPLETE | VMI_INIT_EVENTS),
-                      vm_name);
+    status = vmi_init_complete(&vmi, vm_name, VMI_INIT_DOMAINNAME | VMI_INIT_EVENTS,
+                          NULL, VMI_CONFIG_GLOBAL_FILE_ENTRY, NULL, NULL);
     if (status == VMI_FAILURE) {
         fprintf(stdout, "Failed to init LibVMI! :( %m\n");
         return 1;
