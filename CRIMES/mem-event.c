@@ -107,7 +107,7 @@ int main(int argc, char **argv)
 //        goto cleanup;
 //    }
 
-    paddr = vmi_translate_uv2p(vmi, vaddr, pid);
+    vmi_translate_uv2p(vmi, vaddr, pid, &paddr);
     if (paddr == 0) {
         fprintf(stdout, "Failed to translate uv2p...DIE! %m\n");
         status = VMI_FAILURE;
