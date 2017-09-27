@@ -30,6 +30,12 @@
 #include "xl_utils.h"
 #include "xl_parse.h"
 
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <fcntl.h>
+/* FIXME: Remove global value */
+int pass = 0;
+
 #ifndef LIBXL_HAVE_NO_SUSPEND_RESUME
 
 static pid_t create_migration_child(const char *rune, int *send_fd,
@@ -331,6 +337,24 @@ static void migrate_receive(int debug, int daemonize, int monitor,
     signal(SIGPIPE, SIG_IGN);
     /* if we get SIGPIPE we'd rather just have it as an error */
 
+    /*
+    * FIXME:
+    * Remove hardcoded paths
+    */
+    int ret;
+
+    int write_vm_renamed_fd;
+    char *write_vm_renamed_ff = "/home/sundarcs/vm_renamed";
+
+    int read_event_setup_fd;
+    char *read_event_setup_ff = "/home/sundarcs/restore_to_event";
+
+    fprintf(stderr, "PIPE: Creating the pipe\n");
+    mkfifo(read_event_setup_ff, 0666);
+    fprintf(stderr, "PIPE: Pipe created\n");
+
+    int *tf = malloc(sizeof(int));
+
     fprintf(stderr, "migration target: Ready to receive domain.\n");
 
     CHK_ERRNOVAL(libxl_write_exactly(
@@ -384,6 +408,47 @@ static void migrate_receive(int debug, int daemonize, int monitor,
         if (migration_domname) {
             rc = libxl_domain_rename(ctx, domid, migration_domname,
                                      common_domname);
+
+        /*
+         * FIXME:
+         * This is a little hack to stop Remus, prevent VMs from resuming, and
+         * to keep all VMs (primary and backup) in a paused state.
+         * We do this because we want to unpause the backup using the CRIMES event
+         * monitoring module.
+         *
+         * In the future, this should not be achieved using `exit(1)`.
+         */
+        exit(1);
+
+        write_vm_renamed_fd = open(write_vm_renamed_ff, O_WRONLY);
+        fprintf(stderr, "PIPE: Value of pass is %d\n", pass);
+        usleep(500);
+
+        if(!pass)
+        {
+            fprintf(stderr, "PIPE: Writing that the VM is renamed\n");
+            ret = write(write_vm_renamed_fd, (void *)1, sizeof(int));
+            fsync(write_vm_renamed_fd);
+            fprintf(stderr, "PIPE: Written successfully that VM is renamed\n");
+
+            read_event_setup_fd = open(read_event_setup_ff, O_RDONLY);
+            fprintf(stderr, "PIPE: Opening file descriptor\n");
+            fprintf(stderr, "PIPE: Reading if event monitoring is set-up\n");
+            ret = read(read_event_setup_fd, tf, sizeof(int));
+            fprintf(stderr, "PIPE: Event monitoring is set-up\n");
+
+            fprintf(stderr, "Sleeping for 10 seconds\n");
+            //sleep(10);
+
+            close(read_event_setup_fd);
+            unlink(read_event_setup_ff);
+        }
+
+        pass = 1;
+
+        fprintf(stderr, "Sleeping for 10 seconds\n");
+        //sleep(10);
+
             if (rc)
                 fprintf(stderr, "migration target (%s): "
                         "Failed to rename domain from %s to %s:%d\n",
