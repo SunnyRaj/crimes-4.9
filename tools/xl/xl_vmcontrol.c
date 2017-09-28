@@ -810,7 +810,7 @@ int create_domain(struct domain_create *dom_info)
              * file; and we receive it to a temporary name */
             assert(!common_domname);
 
-            common_domname = d_config.c_info.name;
+            common_domname = "machine";  //d_config.c_info.name;
             d_config.c_info.name = 0; /* steals allocation from config */
 
             xasprintf(&d_config.c_info.name, "%s--incoming", common_domname);
@@ -1036,7 +1036,7 @@ start:
                 paused = 0;
                 if (common_domname
                     && strcmp(d_config.c_info.name, common_domname)) {
-                    d_config.c_info.name = strdup(common_domname);
+                    d_config.c_info.name = "machine"; //strdup(common_domname);
                 }
 
                 /*
