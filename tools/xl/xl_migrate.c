@@ -344,10 +344,10 @@ static void migrate_receive(int debug, int daemonize, int monitor,
     int ret;
 
     int write_vm_renamed_fd;
-    char *write_vm_renamed_ff = "/home/sundarcs/vm_renamed";
+    char *write_vm_renamed_ff = "/tmp/vm_renamed";
 
     int read_event_setup_fd;
-    char *read_event_setup_ff = "/home/sundarcs/restore_to_event";
+    char *read_event_setup_ff = "/tmp/restore_to_event";
 
     fprintf(stderr, "PIPE: Creating the pipe\n");
     mkfifo(read_event_setup_ff, 0666);
