@@ -15,7 +15,7 @@
 #include <libvmi/events.h>
 
 #define DEBUG 0
-#define PIPE_BUF_TO_MEM_FD "/home/sundarcs/buf_to_mem"
+#define PIPE_BUF_TO_MEM_FD "/tmp/buf_to_mem"
 
 #define DEBUG_PAUSE()                                                       \
     do {                                                                    \

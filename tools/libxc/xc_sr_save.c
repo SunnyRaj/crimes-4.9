@@ -923,8 +923,8 @@ static int suspend_and_send_dirty(struct xc_sr_context *ctx)
 /*-------------------------------------------------------------------------------------*/
     if (counter == 1)
     {
-	xen_write_ff = "/home/sundarcs/xen_to_vmi";        //Linux Pipe
-	xen_read_ff = "/home/sundarcs/vmi_to_xen";
+	xen_write_ff = "/tmp/xen_to_vmi";        //Linux Pipe
+	xen_read_ff = "/tmp/vmi_to_xen";
         mkfifo(xen_read_ff, 0666);        //Create Pipe 2
         xen_write_fd = open(xen_write_ff, O_WRONLY);      //Open Pipe 1 for Write
         xen_read_fd = open(xen_read_ff, O_RDONLY);      //open Pipe 2 for Read
