@@ -23,9 +23,9 @@
 
 #define COUNT 2
 
-#define write_event_setup_ff "/home/sundarcs/event_to_restore"
-#define vmi_read_ff "/home/sundarcs/xen_to_vmi"
-#define vmi_write_ff "/home/sundarcs/vmi_to_xen"
+#define write_event_setup_ff "/tmp/event_to_restore"
+#define vmi_read_ff "/tmp/xen_to_vmi"
+#define vmi_write_ff "/tmp/vmi_to_xen"
 
 #if 0
 static int interrupted = 0;
