@@ -941,7 +941,14 @@ static int suspend_and_send_dirty(struct xc_sr_context *ctx)
 
     fprintf(stderr, "Reading from LibVMI\n");
     rc = read(fde2r, &buf, sizeof(int)); //Read Accept or Reject as 1 or 0
-    fprintf(stderr,"REMUS: Received: %d\n", buf);
+    if (rc == 4) {
+	fprintf(stderr, "Canary Check passed from LibVMI\n");
+    }
+    else {
+	fprintf(stderr, "Buffer Overflow Detected from LibVMI!\n");
+	goto out;
+    }
+//    fprintf(stderr,"REMUS: Received: %d\n", buf);
 
     DPRINTF("Time at sr_vmi_read %lld ns", ns_timer());
 
