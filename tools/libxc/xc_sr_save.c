@@ -32,8 +32,9 @@ struct timeval tv;
 #define ENABLE_LIBVMI  //comment to disable VMI
 int counter = 1;
 int buf;
-int xen_write_fd = 0;             //Linux Pipe 1
-int xen_read_fd = 0;            //Linux Pipe 2
+
+int fdr2e = 0;             //Linux Pipe remus to event-monitoring
+int fde2r = 0;            //Linux Pipe event-monitoring to remus
 
 int nr_checkpoints = 0;
 
@@ -884,10 +885,10 @@ static int suspend_and_send_dirty(struct xc_sr_context *ctx)
     char *progress_str = NULL;
 
 #ifdef ENABLE_LIBVMI
-    char * xen_write_ff = NULL;
-    char * xen_read_ff = NULL;
-    char* start_addr = "f7b103fa080";  //subject to change frequently
-//    char* end_addr = "ffff88001d66917b";    //subject to change frequently
+/*---------------------Linux Pipe---------------------------*/
+    char * ffr2e = NULL;        //Linux Pipe
+    char * ffe2r = NULL;
+/*-----------------------End Linux Pipe--------------------------------*/
 #endif
 
     int rc;
@@ -905,14 +906,14 @@ static int suspend_and_send_dirty(struct xc_sr_context *ctx)
 
 #ifdef ENABLE_LIBVMI
 
-    vmi_req.st_addr = malloc(sizeof(vmi_req.st_addr));
+   vmi_req.st_addr = malloc(sizeof(vmi_req.st_addr));
 //    vmi_req.en_addr = malloc(sizeof(vmi_req.en_addr));
 
 /*------------------------------------------------------------------------------------*/
     /*
      *  Convert hexa address into uint64
      */
-    DPRINTF("Start Address: %s\n", start_addr);
+//    DPRINTF("Start Address: %s\n", start_addr);
     *(vmi_req.st_addr) = 35090488;//(uint64_t) strtoul(start_addr, NULL, 20);    /* Have to get the address printed in the malloc code */
     DPRINTF("Starting Address in unsigned long int: %" PRIu64 "\n", *(vmi_req.st_addr));
 /*
@@ -923,21 +924,23 @@ static int suspend_and_send_dirty(struct xc_sr_context *ctx)
 /*-------------------------------------------------------------------------------------*/
     if (counter == 1)
     {
-	xen_write_ff = "/tmp/xen_to_vmi";        //Linux Pipe
-	xen_read_ff = "/tmp/vmi_to_xen";
-        mkfifo(xen_read_ff, 0666);        //Create Pipe 2
-        xen_write_fd = open(xen_write_ff, O_WRONLY);      //Open Pipe 1 for Write
-        xen_read_fd = open(xen_read_ff, O_RDONLY);      //open Pipe 2 for Read
+	/*---------------------Linux Pipe---------------------------*/
+	    ffr2e = "/home/zhen/ffr2e";        //Linux Pipe
+	    ffe2r = "/home/zhen/ffe2r";
+	    mkfifo(ffe2r, 0666);        //Create Pipe event-monitoring to remus
+	    fdr2e = open(ffr2e, O_WRONLY);      //Open Pipe remus to event-monitoring for Write
+	    fde2r = open(ffe2r, O_RDONLY);      //open Pipe event-monitoring to remus for Read
+	/*---------------------Linux Pipe---------------------------*/
     }
 
     DPRINTF("Time at sr_vmi_write %lld ns", ns_timer());
 
-    rc = write(xen_write_fd, vmi_req.st_addr, sizeof(void *));//Write start address to Pipe 1
-    fsync(xen_write_fd);
-    fprintf(stderr, "Written 1st address %" PRIu64 " Successfully!!\n", *(vmi_req.st_addr));
+    rc = write(fdr2e, vmi_req.st_addr, sizeof(void *));//Write start address to Pipe 1
+    fsync(fdr2e);
+    fprintf(stderr, "Written virtual address %" PRIu64 " Successfully!!\n", *(vmi_req.st_addr));
 
     fprintf(stderr, "Reading from LibVMI\n");
-    rc = read(xen_read_fd, &buf, sizeof(int)); //Read Accept or Reject as 1 or 0
+    rc = read(fde2r, &buf, sizeof(int)); //Read Accept or Reject as 1 or 0
     fprintf(stderr,"REMUS: Received: %d\n", buf);
 
     DPRINTF("Time at sr_vmi_read %lld ns", ns_timer());
@@ -950,25 +953,25 @@ static int suspend_and_send_dirty(struct xc_sr_context *ctx)
     if (!buf && counter == 2)
     {
         fprintf(stderr,"REMUS: FAILING OVER HERE: %d\n", buf);
-        close(xen_write_fd);
-        close(xen_read_fd);
-        unlink(xen_read_ff);
-        free (vmi_req.st_addr);
-        free (vmi_req.en_addr);
+        close(fdr2e);
+        close(fde2r);
+        unlink(ffe2r);
+//        free (vmi_req.st_addr);
+//        free (vmi_req.en_addr);
         fprintf(stderr, "REMUS: Suspending domain");
 
         return 100;
     }
 
-    rc = read(xen_read_fd, &buf, sizeof(int)); //Read Accept or Reject as 1 or 0
+    rc = read(fde2r, &buf, sizeof(int)); //Read Accept or Reject as 1 or 0
     if (!buf && counter == 2)
     {
         fprintf(stderr,"REMUS: FAILING OVER HERE: %d\n", buf);
-        close(xen_write_fd);
-        close(xen_read_fd);
-    	unlink(xen_read_ff);
-    	free (vmi_req.st_addr);
-    	free (vmi_req.en_addr);
+        close(fdr2e);
+        close(fde2r);
+    	unlink(ffe2r);
+//    	free (vmi_req.st_addr);
+//    	free (vmi_req.en_addr);
         fprintf(stderr, "REMUS: Suspending domain");
 
     	return 100;
