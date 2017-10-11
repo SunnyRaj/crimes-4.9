@@ -7,8 +7,9 @@
 #include <string.h>
 #include <unistd.h>
 
-struct timeval tv;
-
+typedef long long NANOSECONDS;
+typedef struct timespec TIMESPEC;
+static int count = 0;
 #define DEBUG 1
 
 #define DEBUG_PAUSE()                                                       \
@@ -22,116 +23,65 @@ struct timeval tv;
         }                                                                   \
     } while(0)
 
-void exploit(char *ptr1)
+
+static inline NANOSECONDS ns_timer(void)
 {
-    unsigned long long time;
-    int i = 0;
-    gettimeofday(&tv, NULL);
-    time = tv.tv_sec * 1000000 + tv.tv_usec;
-/* 
-    strcpy(ptr1, "abchijkl");
-    usleep(200);
-    strcpy(ptr1, "fghijkl");
-    usleep(200);
-    strcpy(ptr1, "hijkl");
-    usleep(200);
-    strcpy(ptr1, "jkl");
-    usleep(200);
-    strcpy(ptr1, "ijkl");
-    usleep(200);
-    strcpy(ptr1, "kl");
-    usleep(200);
-*/
+    TIMESPEC curr_time;
+    clock_gettime(CLOCK_MONOTONIC, &curr_time);
 
-    printf("Timestamp 1 %llu\n", (unsigned long long) time);
-    printf("Address of ptr1[10] is %p\n", &ptr1[10]); 
-    strcpy(ptr1, "abcdefghijkl");
-    printf("Address of ptr1[10] is %p\n", &ptr1[10]); 
-
-    gettimeofday(&tv, NULL);
-    time = tv.tv_sec * 1000000 + tv.tv_usec;
-    printf("Timestamp 2 %llu\n", (unsigned long long) time);
-    while(1)
-    {
-	usleep(1000);
-	printf("Counter %d\n", i++); 
-    }
+    return (NANOSECONDS) (curr_time.tv_sec * 1000000000LL) +
+           (NANOSECONDS) (curr_time.tv_nsec);
 }
 
+void *rand_string(char *str, size_t size)
+{
+    const char charset[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJK...";
+    size_t n = 0;
+    if (size) {
+        --size;
+        for (n = 0; n < size; n++) {
+            int key = rand() % (int) (sizeof charset - 1);
+            str[n] = charset[key];
+        }
+        str[size] = '\0';
+    }
+    return str;
+}
+
+void exploit(char *ptr1)
+{
+    count++;
+    char *rand_str;
+
+    if (count <= 3) {
+	    rand_str = malloc(8);
+	    rand_str = rand_string(rand_str, 8);
+    } else {
+            rand_str = malloc(12);
+	    rand_str = rand_string(rand_str, 12);
+    }
+
+    printf("Timestamp 1 %llu\n", ns_timer());
+    strcpy(ptr1, rand_str);
+    //strcpy(ptr1, "aaaaaaaa");
+    printf("Address of ptr1[10] is %p\n", &ptr1[10]); 
+    printf("The value of the new string is %s\n", ptr1);
+
+    printf("Timestamp 2 %llu\n", ns_timer());
+}
 int main()
 {
-    int i;
-    unsigned long long time;
-
     printf("$$$ test-malloc running with PID = %d\n", getpid());
-
+    char *ptr1 = malloc(sizeof(char) * 10);
     while(1)
     {
-        int *ptr = malloc(sizeof(int) * 10);
-        printf("Address of ptr is %p\n", &ptr); 
-        char *ptr1 = malloc(sizeof(char) * 10);
         printf("Address of ptr1 is %p\n", ptr1); 
-        printf("Address of ptr1[10] is %p\n", &ptr1[10]); 
-        char *ptr2 = malloc(sizeof(char) * 10);
-        char *ptr3 = malloc(sizeof(char) * 10);
-        char *ptr4 = malloc(sizeof(char) * 10);
-        char *ptr5 = malloc(sizeof(char) * 10);
-        char *ptr6 = malloc(sizeof(char) * 10);
-        char *ptr7 = malloc(sizeof(char) * 10);
-        char *ptr8 = malloc(sizeof(char) * 10);
-        char *ptr9 = malloc(sizeof(char) * 10);
-        char *ptr10 = malloc(sizeof(char) * 10);
-        char *ptr11 = malloc(sizeof(char) * 10);
-        char *ptr12 = malloc(sizeof(char) * 10);
-        char *ptr13 = malloc(sizeof(char) * 10);
-        char *ptr14 = malloc(sizeof(char) * 10);
-        char *ptr15 = malloc(sizeof(char) * 10);
-        char *ptr16 = malloc(sizeof(char) * 10);
-        int size = sizeof(ptr);
-        int size1 = sizeof(ptr1);
-        int size2 = sizeof(ptr2);
-        int size3 = sizeof(ptr3);
-        int size4 = sizeof(ptr4);
-        int size5 = sizeof(ptr5);
-        int size6 = sizeof(ptr6);
-        int size7 = sizeof(ptr7);
-        int size8 = sizeof(ptr8);
-        int size9 = sizeof(ptr9);
-        int size10 = sizeof(ptr10);
-        int size11 = sizeof(ptr11);
-        int size12 = sizeof(ptr12);
-        int size13 = sizeof(ptr13);
-        int size14 = sizeof(ptr14);
-        int size16 = sizeof(ptr16);
-//        int size16 = sizeof(ptr16);
 
         fprintf(stdout, "\n$$$ Buffers allocated, ready to be hacked!\n");
 
         DEBUG_PAUSE();
 
-        int count = 0;
-        while (count++ <= 5000) {
-            usleep(1000);
-        }
-
         exploit(ptr1);
-//        free(ptr);
-//        free(ptr1);
-//        free(ptr2);
-//        free(ptr3);
-//        free(ptr4);
-//        free(ptr5);
-//        free(ptr6);
-//        free(ptr7);
-//        free(ptr8);
-//        free(ptr9);
-//        free(ptr10);
-//        free(ptr11);
-//        free(ptr12);
-//        free(ptr13);
-//        free(ptr14);
-//        free(ptr15);
-//        free(ptr16);
     }
 }
 

@@ -4,7 +4,6 @@
 #include <string.h>
 
 #include "prot_malloc.h"
-
 static void removeEntry(uint64_t temp) 
 {
     int i;
@@ -101,7 +100,8 @@ void* malloc(size_t sz)
  /*
   * add the address to the list as a value
   */
-    if(!addToList(temp_addr))
+
+    if(0 && !addToList(temp_addr))
     {
         fprintf(stderr, "Failed to add the canary to the list\n");
     }
