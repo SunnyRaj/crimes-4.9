@@ -74,6 +74,9 @@ int main(int argc, char **argv)
     pid = strtoul(argv[2], NULL, 10);
     vaddr = strtoull(argv[3], NULL, 10);
 
+    fprintf(stdout, "The DEFAULT Global Virtual Address is %lx\n", g_vaddr);
+    fprintf(stdout, "The DEFAULT Global Process ID is %lx\n", g_pid);
+
     g_vaddr = vaddr;
     g_pid = pid;
     fprintf(stdout, "The Global Virtual Address is %lx\n", g_vaddr);
