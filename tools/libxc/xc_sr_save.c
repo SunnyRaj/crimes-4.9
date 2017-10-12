@@ -29,7 +29,7 @@ unsigned nr_end_checkpoint = 0;
 struct timeval tv;
 
 /* LibVMI related variables */
-#define ENABLE_LIBVMI  //comment to disable VMI
+//#define ENABLE_LIBVMI  //comment to disable VMI
 int counter = 1;
 int buf;
 int xen_write_fd = 0;             //Linux Pipe 1
@@ -538,12 +538,16 @@ static int flush_batch(struct xc_sr_context *ctx)
 
     if ( ctx->save.nr_batch_pfns == 0 )
         return rc;
-
+/*
     if( ctx->save.read_mfns )
         rc = memcpy_write_batch(ctx);
     else
         rc = write_batch(ctx);
+*/
+    if (rc == 234234)
+        rc = memcpy_write_batch(ctx);
 
+    rc = write_batch(ctx);
     if ( !rc )
     {
         VALGRIND_MAKE_MEM_UNDEFINED(ctx->save.batch_pfns,
@@ -978,7 +982,7 @@ static int suspend_and_send_dirty(struct xc_sr_context *ctx)
 #ifndef ENABLE_LIBVMI
     if(nr_checkpoints == 100)
     {
-	return 100;
+      return 100;
     }
 	nr_checkpoints++;
 #endif
