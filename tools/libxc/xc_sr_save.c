@@ -925,8 +925,8 @@ static int suspend_and_send_dirty(struct xc_sr_context *ctx)
     if (counter == 1)
     {
 	/*---------------------Linux Pipe---------------------------*/
-	    ffr2e = "/home/zhen/ffr2e";        //Linux Pipe
-	    ffe2r = "/home/zhen/ffe2r";
+	    ffr2e = "/tmp/ffr2e";        //Linux Pipe
+	    ffe2r = "/tmp/ffe2r";
 	    mkfifo(ffe2r, 0666);        //Create Pipe event-monitoring to remus
 	    fdr2e = open(ffr2e, O_WRONLY);      //Open Pipe remus to event-monitoring for Write
 	    fde2r = open(ffe2r, O_RDONLY);      //open Pipe event-monitoring to remus for Read
