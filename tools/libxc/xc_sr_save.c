@@ -31,7 +31,7 @@ struct timeval tv;
 /* LibVMI related variables */
 #define ENABLE_LIBVMI  //comment to disable VMI
 int counter = 1;
-char buf[1];
+char buf[4];
 
 int fdr2o = 0;             //Linux Pipe remus to event-monitoring
 int fdo2r = 0;            //Linux Pipe event-monitoring to remus
@@ -940,11 +940,12 @@ static int suspend_and_send_dirty(struct xc_sr_context *ctx)
     fprintf(stderr, "Written Start Overflow Detection Signal Successfully!!\n");
 
     fprintf(stderr, "Reading from LibVMI\n");
-    rc = read(fdo2r, buf, 1); //Read Accept or Reject as 1 or 0
-    if (rc == 1) {
+    //read(fdo2r, buf, 4); //Read Accept or Reject as Good or Bad
+    fprintf(stderr,"Canary Check Received from Overflow Detection: %s\n", buf);
+    if (read(fdo2r, buf, 4) == 4) {   //Good
 	fprintf(stderr, "Canary Check passed from LibVMI\n");
     }
-    else {
+    else {    //Bad
 	fprintf(stderr, "Buffer Overflow Detected from LibVMI!\n");
 	//goto out;
     return 100;

@@ -136,14 +136,14 @@ int main (int argc, char **argv)
         {
             printf("The value at virtual address: %lu is: %lu\n", vaddr, canary);
             fprintf(stdout, "[TIMESTAMP] Canary address violated %lld ns\n", ns_timer());
-            write(vmi_write_fd, "0", 1);             //Write to Pipe 2
+            write(vmi_write_fd, "Bad", 3);             //Write to Pipe 2
             fprintf(stderr, "Overflow Detected\n");
             fsync(vmi_write_fd);
             break;
         }
         else
         {
-            write(vmi_write_fd, "1", 1);             //Write to Pipe 2
+            write(vmi_write_fd, "Good", 4);             //Write to Pipe 2
             fprintf(stdout, "Canary Check Passed!!\n");
             fsync(vmi_write_fd);
         }
