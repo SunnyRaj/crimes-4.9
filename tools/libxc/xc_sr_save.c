@@ -33,8 +33,8 @@ struct timeval tv;
 int counter = 1;
 int buf;
 
-int fdr2e = 0;             //Linux Pipe remus to event-monitoring
-int fde2r = 0;            //Linux Pipe event-monitoring to remus
+int fdr2o = 0;             //Linux Pipe remus to event-monitoring
+int fdo2r = 0;            //Linux Pipe event-monitoring to remus
 
 int nr_checkpoints = 0;
 
@@ -886,8 +886,8 @@ static int suspend_and_send_dirty(struct xc_sr_context *ctx)
 
 #ifdef ENABLE_LIBVMI
 /*---------------------Linux Pipe---------------------------*/
-    char * ffr2e = NULL;        //Linux Pipe
-    char * ffe2r = NULL;
+    char * ffr2o = NULL;        //Linux Pipe
+    char * ffo2r = NULL;
 /*-----------------------End Linux Pipe--------------------------------*/
 #endif
 
@@ -925,32 +925,33 @@ static int suspend_and_send_dirty(struct xc_sr_context *ctx)
     if (counter == 1)
     {
 	/*---------------------Linux Pipe---------------------------*/
-	    ffr2e = "/tmp/ffr2e";        //Linux Pipe
-	    ffe2r = "/tmp/ffe2r";
-	    mkfifo(ffe2r, 0666);        //Create Pipe event-monitoring to remus
-	    fdr2e = open(ffr2e, O_WRONLY);      //Open Pipe remus to event-monitoring for Write
-	    fde2r = open(ffe2r, O_RDONLY);      //open Pipe event-monitoring to remus for Read
+	    ffr2o = "/tmp/ffr2o";        //Linux Pipe
+	    ffo2r = "/tmp/ffo2r";
+	    mkfifo(ffo2r, 0666);        //Create Pipe event-monitoring to remus
+	    fdr2o = open(ffr2o, O_WRONLY);      //Open Pipe remus to event-monitoring for Write
+	    fdo2r = open(ffo2r, O_RDONLY);      //open Pipe event-monitoring to remus for Read
 	/*---------------------Linux Pipe---------------------------*/
     }
 
     DPRINTF("Time at sr_vmi_write %lld ns", ns_timer());
 
-    rc = write(fdr2e, vmi_req.st_addr, sizeof(void *));//Write start address to Pipe 1
-    fsync(fdr2e);
-    fprintf(stderr, "Written virtual address %" PRIu64 " Successfully!!\n", *(vmi_req.st_addr));
+    rc = write(fdr2o, "Start Overflow Detection", 24);//Write start signal to Pipe 1
+    fsync(fdr2o);
+    fprintf(stderr, "Written Start Overflow Detection Signal Successfully!!\n");
 
     fprintf(stderr, "Reading from LibVMI\n");
-    rc = read(fde2r, &buf, sizeof(int)); //Read Accept or Reject as 1 or 0
-    if (rc == 4) {
+    rc = read(fdo2r, &buf, sizeof(int)); //Read Accept or Reject as 1 or 0
+    if (rc == 1) {
 	fprintf(stderr, "Canary Check passed from LibVMI\n");
     }
     else {
 	fprintf(stderr, "Buffer Overflow Detected from LibVMI!\n");
-	goto out;
+	//goto out;
+    return 100;
     }
 //    fprintf(stderr,"REMUS: Received: %d\n", buf);
 
-    DPRINTF("Time at sr_vmi_read %lld ns", ns_timer());
+    DPRINTF("Time Read from Overflow Detect: %lld ns", ns_timer());
 
 /*--------------------------------------------------------------------------*/
 /*
@@ -960,23 +961,9 @@ static int suspend_and_send_dirty(struct xc_sr_context *ctx)
     if (!buf && counter == 2)
     {
         fprintf(stderr,"REMUS: FAILING OVER HERE: %d\n", buf);
-        close(fdr2e);
-        close(fde2r);
-        unlink(ffe2r);
-//        free (vmi_req.st_addr);
-//        free (vmi_req.en_addr);
-        fprintf(stderr, "REMUS: Suspending domain");
-
-        return 100;
-    }
-
-    rc = read(fde2r, &buf, sizeof(int)); //Read Accept or Reject as 1 or 0
-    if (!buf && counter == 2)
-    {
-        fprintf(stderr,"REMUS: FAILING OVER HERE: %d\n", buf);
-        close(fdr2e);
-        close(fde2r);
-    	unlink(ffe2r);
+        close(fdr2o);
+        close(fdo2r);
+    	unlink(ffo2r);
 //    	free (vmi_req.st_addr);
 //    	free (vmi_req.en_addr);
         fprintf(stderr, "REMUS: Suspending domain");
@@ -1247,9 +1234,9 @@ static int save(struct xc_sr_context *ctx, uint16_t guest_type)
         if (rc == 100)
         {
             rc = system ("sudo xl pause ubuntu-hvm");    //pause the primary
-	    gettimeofday(&tv, NULL);
-	    time = tv.tv_sec * 1000000 + tv.tv_usec;
-	    printf("Timestamp at which the primary is paused %llu\n", (unsigned long long) time);
+	    //gettimeofday(&tv, NULL);
+	    //time = tv.tv_sec * 1000000 + tv.tv_usec;
+	    //printf("Timestamp at which the primary is paused %llu\n", (unsigned long long) time);
 
             return 100;
         }
@@ -1331,7 +1318,7 @@ static int save(struct xc_sr_context *ctx, uint16_t guest_type)
             if( map_primary_and_backup(ctx) )
                 DPRINTF("SR: error: Mapping primary and backup failed");
 
-            ctx->save.read_mfns = 1;
+//            ctx->save.read_mfns = 1;
         }
 
    } while ( ctx->save.checkpointed != XC_MIG_STREAM_NONE );
