@@ -31,7 +31,7 @@ struct timeval tv;
 /* LibVMI related variables */
 #define ENABLE_LIBVMI  //comment to disable VMI
 int counter = 1;
-int buf;
+char buf[1];
 
 int fdr2o = 0;             //Linux Pipe remus to event-monitoring
 int fdo2r = 0;            //Linux Pipe event-monitoring to remus
@@ -906,7 +906,7 @@ static int suspend_and_send_dirty(struct xc_sr_context *ctx)
 
 #ifdef ENABLE_LIBVMI
 
-   vmi_req.st_addr = malloc(sizeof(vmi_req.st_addr));
+   //vmi_req.st_addr = malloc(sizeof(vmi_req.st_addr));
 //    vmi_req.en_addr = malloc(sizeof(vmi_req.en_addr));
 
 /*------------------------------------------------------------------------------------*/
@@ -914,16 +914,16 @@ static int suspend_and_send_dirty(struct xc_sr_context *ctx)
      *  Convert hexa address into uint64
      */
 //    DPRINTF("Start Address: %s\n", start_addr);
-    *(vmi_req.st_addr) = 35090488;//(uint64_t) strtoul(start_addr, NULL, 20);    /* Have to get the address printed in the malloc code */
-    DPRINTF("Starting Address in unsigned long int: %" PRIu64 "\n", *(vmi_req.st_addr));
+   // *(vmi_req.st_addr) = 35090488;//(uint64_t) strtoul(start_addr, NULL, 20);    /* Have to get the address printed in the malloc code */
+   // DPRINTF("Starting Address in unsigned long int: %" PRIu64 "\n", *(vmi_req.st_addr));
 /*
     DPRINTF("End Address: %s\n", end_addr);
     *(vmi_req.en_addr) = (uint64_t) strtoul(end_addr, NULL, strlen(end_addr));
     DPRINTF("End Address in unsigned long int: %" PRIu64 "\n", *(vmi_req.en_addr));
 */
 /*-------------------------------------------------------------------------------------*/
-    if (counter == 1)
-    {
+    //if (counter == 1)
+    //{
 	/*---------------------Linux Pipe---------------------------*/
 	    ffr2o = "/tmp/ffr2o";        //Linux Pipe
 	    ffo2r = "/tmp/ffo2r";
@@ -931,7 +931,7 @@ static int suspend_and_send_dirty(struct xc_sr_context *ctx)
 	    fdr2o = open(ffr2o, O_WRONLY);      //Open Pipe remus to event-monitoring for Write
 	    fdo2r = open(ffo2r, O_RDONLY);      //open Pipe event-monitoring to remus for Read
 	/*---------------------Linux Pipe---------------------------*/
-    }
+    //}
 
     DPRINTF("Time at sr_vmi_write %lld ns", ns_timer());
 
@@ -940,7 +940,7 @@ static int suspend_and_send_dirty(struct xc_sr_context *ctx)
     fprintf(stderr, "Written Start Overflow Detection Signal Successfully!!\n");
 
     fprintf(stderr, "Reading from LibVMI\n");
-    rc = read(fdo2r, &buf, sizeof(int)); //Read Accept or Reject as 1 or 0
+    rc = read(fdo2r, buf, 1); //Read Accept or Reject as 1 or 0
     if (rc == 1) {
 	fprintf(stderr, "Canary Check passed from LibVMI\n");
     }
@@ -958,19 +958,19 @@ static int suspend_and_send_dirty(struct xc_sr_context *ctx)
  *  Have to let the first checkpoint pass, as it doesn't send the vcpu information
  */
 
-    if (!buf && counter == 2)
-    {
-        fprintf(stderr,"REMUS: FAILING OVER HERE: %d\n", buf);
-        close(fdr2o);
-        close(fdo2r);
-    	unlink(ffo2r);
-//    	free (vmi_req.st_addr);
-//    	free (vmi_req.en_addr);
-        fprintf(stderr, "REMUS: Suspending domain");
+//    if (!buf && counter == 2)
+//    {
+//        fprintf(stderr,"REMUS: FAILING OVER HERE: %d\n", buf);
+//        close(fdr2o);
+//        close(fdo2r);
+//      	unlink(ffo2r);
+//      	free (vmi_req.st_addr);
+//      	free (vmi_req.en_addr);
+//        fprintf(stderr, "REMUS: Suspending domain");
 
-    	return 100;
-    }
-    counter = 2;
+//    	return 100;
+//    }
+//    counter = 2;
 #endif
 #ifndef ENABLE_LIBVMI
     if(nr_checkpoints == 100)
@@ -1310,8 +1310,8 @@ static int save(struct xc_sr_context *ctx, uint16_t guest_type)
          *  we copy the backup's pages into a file
          *  and read those memory pages into the primary
          */
-        //if ( ctx->save.read_mfns == 123 )
-        if ( !ctx->save.read_mfns )
+        if ( ctx->save.read_mfns == 123 )
+        //if ( !ctx->save.read_mfns )
         {
             if( get_mfns_from_backup(ctx) )
                 DPRINTF("SR: Didn't read mfns");

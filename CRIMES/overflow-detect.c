@@ -59,11 +59,8 @@ int main (int argc, char **argv)
     vmi_pid_t pid;
     addr_t vaddr = 0ULL;
     int ret_count;
-    uint64_t *buf = malloc(sizeof(uint64_t));
+    char buf[24];
     uint64_t canary = 0;
-		const int *fail = 0;
-		const int *pass = 1;
-//    struct sigaction act;
 
     if (argc < 4) {
         fprintf(stderr, "Usage: overflow-detect <name of VM> <pid> <vaddr>\n");
@@ -117,8 +114,8 @@ int main (int argc, char **argv)
          * Read the address of canary_list; buf has the address of canary_list
          */
         printf("Process ID is %lu\n", pid);
-        read(vmi_read_fd, buf, sizeof(void *));
-        fprintf(stderr,"Signal Received from Remus: %s\n", *buf);
+        read(vmi_read_fd, buf, 24);
+        fprintf(stderr,"Signal Received from Remus: %s\n", buf);
 
         //vmi_req.st_addr = buf;
 
@@ -137,15 +134,16 @@ int main (int argc, char **argv)
 
         if (canary != 100)
         {
+            printf("The value at virtual address: %lu is: %lu\n", vaddr, canary);
             fprintf(stdout, "[TIMESTAMP] Canary address violated %lld ns\n", ns_timer());
-            write(vmi_write_fd, fail, sizeof(int));             //Write to Pipe 2
+            write(vmi_write_fd, "0", 1);             //Write to Pipe 2
             fprintf(stderr, "Overflow Detected\n");
             fsync(vmi_write_fd);
             break;
         }
         else
         {
-            write(vmi_write_fd, pass, sizeof(int));             //Write to Pipe 2
+            write(vmi_write_fd, "1", 1);             //Write to Pipe 2
             fprintf(stdout, "Canary Check Passed!!\n");
             fsync(vmi_write_fd);
         }
