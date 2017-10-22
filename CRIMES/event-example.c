@@ -14,23 +14,9 @@
 #include <libvmi/libvmi.h>
 #include <libvmi/events.h>
 
-#define DEBUG 1
-#define PIPE_BUF_TO_MEM_FD "/tmp/buf_to_mem"
-
-#define DEBUG_PAUSE()                                                       \
-    do {                                                                    \
-        if (DEBUG) {                                                        \
-            printf("[%d] Hit [ENTER] to continue exec...\n", __LINE__);     \
-                char enter = 0;                                             \
-                while (enter != '\r' && enter != '\n') {                    \
-                    enter = getchar();                                      \
-                }                                                           \
-        }                                                                   \
-    } while(0)
 
 addr_t *g_vaddr;
 unsigned long *g_pid;
-//vmi_pid_t g_pid;
 uint64_t canary = 0;
 
 static int interrupted = 0;
@@ -51,7 +37,6 @@ int main(int argc, char **argv)
     struct sigaction act;
     char* vm_name = NULL;
     unsigned long pid = 0UL;
-//    vmi_pid_t pid;
     addr_t vaddr = 0ULL;
     addr_t paddr = 0ULL;
 
@@ -59,8 +44,6 @@ int main(int argc, char **argv)
         fprintf(stderr, "Usage: mem-event <name of VM> <pid> <vaddr>\n");
         exit(1);
     }
-
-    fprintf(stdout, "Started Mem-Events Program\n");
 
     act.sa_handler = close_handler;
     act.sa_flags = 0;
@@ -75,24 +58,10 @@ int main(int argc, char **argv)
     pid = strtoul(argv[2], NULL, 10);
     vaddr = strtoull(argv[3], NULL, 10);
 
-    fprintf(stdout, "The DEFAULT Global Virtual Address is %lx\n", g_vaddr);
-    fprintf(stdout, "The DEFAULT Global Process ID is %lx\n", g_pid);
-
     g_vaddr = vaddr;
     g_pid = pid;
 
-    fprintf(stdout, "The Global Virtual Address is %lx\n", g_vaddr);
-    fprintf(stdout, "The Global Process ID is %lx\n", g_pid);
-
-    fprintf(stdout,
-            "Attempting to monitor vaddr %lx in PID %lx on VM %s",
-            vaddr,
-            pid,
-            vm_name);
-
-    fprintf(stdout, "[TIMESTAMP] Received vaddr, initializing VMI. %lld ns\n", ns_timer());
-    DEBUG_PAUSE();
-
+    fprintf(stdout, "[RECORD] Init VMI at %lld ns\n", ns_timer());
     status = vmi_init_complete(&vmi, vm_name, VMI_INIT_DOMAINNAME | VMI_INIT_EVENTS,
                           NULL, VMI_CONFIG_GLOBAL_FILE_ENTRY, NULL, NULL);
     if (status == VMI_FAILURE) {
@@ -102,27 +71,12 @@ int main(int argc, char **argv)
         fprintf(stdout, "LibVMI init success! :) \n");
     }
 
-    status = vmi_resume_vm(vmi);
-    if (status == VMI_FAILURE) {
-        fprintf(stdout, "Failed to resume VM!! :( \n");
-        return 1;
-    } else {
-        fprintf(stdout, "Resume VM success! :) \n");
-    }
-
     vmi_translate_uv2p(vmi, vaddr, pid, &paddr);
     if (paddr == 0) {
         fprintf(stdout, "Failed to translate uv2p...DIE! %m\n");
         status = VMI_FAILURE;
         goto cleanup;
     }
-
-    fprintf(stdout, "Monitoring paddr %lx on \"%s\"\n", paddr, vm_name);
-
-    fprintf(stdout,
-            "Preparing memory event to monitor PA 0x%lx, page 0x%lx\n",
-            paddr,
-            (paddr >> 12));
 
     memset(&mem_event, 0, sizeof(vmi_event_t));
     SETUP_MEM_EVENT(&mem_event,
@@ -137,16 +91,17 @@ int main(int argc, char **argv)
         goto cleanup;
     }
 
-    //fprintf(stdout, "[RECORD] Starting VMI at %lld ns\n", ns_timer());
+    fprintf(stdout, "[RECORD] Resume VM at %lld ns\n", ns_timer());
+    status = vmi_resume_vm(vmi);
+    if (status == VMI_FAILURE) {
+        fprintf(stdout, "Failed to resume VM!! :( \n");
+        return 1;
+    }
+
+    fprintf(stdout, "[RECORD] Starting VMI at %lld ns\n", ns_timer());
     while (!interrupted) {
         status = vmi_events_listen(vmi, 500);
 
-//	      vmi_read_addr_va(vmi, vaddr, pid, &canary);	
-//	      fprintf(stderr, "The canary value: %lu\n", canary);
-//	      if (canary != 100) {
-//	      fprintf (stdout, "Wrong Canary Detected at Virtual Address: %lx\n Danger!!!\n Danger!!!\n Danger!!!\n\n", vaddr);
-//        DEBUG_PAUSE();
-//	      }
         if (status != VMI_SUCCESS) {
             fprintf(stdout, "Error waiting for events...DIE! %m\n");
             interrupted = -1;
@@ -154,7 +109,6 @@ int main(int argc, char **argv)
     }
 
 cleanup:
-    fprintf(stdout, "Finished mem-event test\n");
 
     vmi_destroy(vmi);
 
@@ -167,8 +121,8 @@ cleanup:
     return status;
 }
 
-event_response_t step_callback(vmi_instance_t vmi, vmi_event_t *event) {
-    //printf("Re-registering event\n");
+event_response_t
+step_callback(vmi_instance_t vmi, vmi_event_t *event) {
     vmi_register_event(vmi, event);
     return 0;
 }
@@ -178,44 +132,26 @@ mem_event_cb(vmi_instance_t vmi, vmi_event_t *event)
 {
     status_t status = VMI_SUCCESS;
 
-    //fprintf(stderr, "[TIMESTAMP] Mem event found on vaddr. %lld ns\n", ns_timer());
-
-    //print_mem_event(event);
-
-    fprintf(stdout, "[RECORD] Starting VMI at %lld ns\n", ns_timer());
+    fprintf(stdout, "[RECORD] Good events at %lld ns\n", ns_timer());
     status = vmi_step_event(vmi, event, event->vcpu_id, 1, step_callback);
-    //DEBUG_PAUSE();
     vmi_read_addr_va(vmi, g_vaddr, g_pid, &canary);
-    fprintf(stderr, "The canary value: %lu\n", canary);
+    //fprintf(stderr, "The canary value: %lu\n", canary);
     if (canary != 100) {
-      fprintf(stderr, "[RECORD] Ending VMI at %lld ns\n", ns_timer());
-      fprintf (stdout, "Wrong Canary Detected at Virtual Address: %lx\n Danger!!!\n Danger!!!\n Danger!!!", g_vaddr);
-      status = vmi_pause_vm(vmi);
-    if (status == VMI_FAILURE) {
-        fprintf(stdout, "Failed to pause VM!! :( \n");
-        return 1;
-    } else {
-        fprintf(stdout, "Pause VM success! :) \n");
-    }
-      DEBUG_PAUSE();
+          fprintf(stderr, "[RECORD] Ending VMI at %lld ns\n", ns_timer());
+          fprintf (stdout, "Wrong Canary Detected at Virtual Address: %lx\n Danger!!!\n Danger!!!\n Danger!!!", g_vaddr);
+          status = vmi_pause_vm(vmi);
+        if (status == VMI_FAILURE) {
+            fprintf(stdout, "Failed to pause VM!! :( \n");
+            return 1;
+        } else {
+            fprintf(stdout, "Pause VM success! :) \n");
+        }
     }
     status = vmi_clear_event(vmi, event, NULL);
     if (status == VMI_FAILURE) {
         fprintf(stdout, "Failed to clear mem event in cb...DIE! %m\n");
         return 1;
     }
-
-//    status = vmi_step_event(vmi,
-//                            event,
-//                            event->vcpu_id,
-//                            1,
-//                            NULL);
-//    if (status == VMI_FAILURE) {
-//        fprintf(stdout, "Failed to step event...DIE! %m\n");
-//        return 1;
-//    }
-
-    //interrupted = 6;
 
     return 0;
 }
