@@ -101,7 +101,11 @@ int main(int argc, char **argv)
 
     fprintf(stdout, "[RECORD] Starting VMI at %lld ns\n", ns_timer());
     while (!interrupted) {
+<<<<<<< HEAD
         status = vmi_events_listen(vmi, 0);
+=======
+        status = vmi_events_listen(vmi, 500);
+>>>>>>> 671de6859817e092e2d8bf5518b9fe14ab4aee51
 
         if (status != VMI_SUCCESS) {
             fprintf(stdout, "Error waiting for events...DIE! %m\n");
@@ -134,16 +138,24 @@ mem_event_cb(vmi_instance_t vmi, vmi_event_t *event)
     status_t status = VMI_SUCCESS;
 
     counter++;
+<<<<<<< HEAD
     if (counter == 1){
       fprintf(stdout, "[RECORD] Good events at %lld ns\n", ns_timer());
     }
+=======
+    //fprintf(stdout, "[RECORD] Good events at %lld ns\n", ns_timer());
+>>>>>>> 671de6859817e092e2d8bf5518b9fe14ab4aee51
     status = vmi_step_event(vmi, event, event->vcpu_id, 1, step_callback);
     vmi_read_addr_va(vmi, g_vaddr, g_pid, &canary);
     //fprintf(stderr, "The canary value: %lu\n", canary);
     if (canary != 100) {
           fprintf(stderr, "[RECORD] Ending VMI at %lld ns\n", ns_timer());
           fprintf(stderr, "[Count] There are %d good events detected.\n", counter);
+<<<<<<< HEAD
           fprintf (stderr, "Wrong Canary Detected at Virtual Address: %lx\n Danger!!!\n Danger!!!\n Danger!!!", g_vaddr);
+=======
+          fprintf (stdout, "Wrong Canary Detected at Virtual Address: %lx\n Danger!!!\n Danger!!!\n Danger!!!", g_vaddr);
+>>>>>>> 671de6859817e092e2d8bf5518b9fe14ab4aee51
           status = vmi_pause_vm(vmi);
         if (status == VMI_FAILURE) {
             fprintf(stdout, "Failed to pause VM!! :( \n");

@@ -30,6 +30,7 @@
 
 addr_t *g_vaddr;
 unsigned long *g_pid;
+//vmi_pid_t g_pid;
 uint64_t canary = 0;
 
 static int interrupted = 0;
@@ -79,6 +80,7 @@ int main(int argc, char **argv)
 
     g_vaddr = vaddr;
     g_pid = pid;
+
     fprintf(stdout, "The Global Virtual Address is %lx\n", g_vaddr);
     fprintf(stdout, "The Global Process ID is %lx\n", g_pid);
 
@@ -89,7 +91,6 @@ int main(int argc, char **argv)
             vm_name);
 
     fprintf(stdout, "[TIMESTAMP] Received vaddr, initializing VMI. %lld ns\n", ns_timer());
-
     DEBUG_PAUSE();
 
     status = vmi_init_complete(&vmi, vm_name, VMI_INIT_DOMAINNAME | VMI_INIT_EVENTS,
@@ -128,6 +129,7 @@ int main(int argc, char **argv)
         goto cleanup;
     }
 
+    //fprintf(stdout, "[RECORD] Starting VMI at %lld ns\n", ns_timer());
     while (!interrupted) {
         status = vmi_events_listen(vmi, 500);
 
@@ -158,7 +160,7 @@ cleanup:
 }
 
 event_response_t step_callback(vmi_instance_t vmi, vmi_event_t *event) {
-    printf("Re-registering event\n");
+    //printf("Re-registering event\n");
     vmi_register_event(vmi, event);
     return 0;
 }
@@ -168,16 +170,18 @@ mem_event_cb(vmi_instance_t vmi, vmi_event_t *event)
 {
     status_t status = VMI_SUCCESS;
 
-    fprintf(stderr, "[TIMESTAMP] Mem event found on vaddr. %lld ns\n", ns_timer());
+    //fprintf(stderr, "[TIMESTAMP] Mem event found on vaddr. %lld ns\n", ns_timer());
 
-    print_mem_event(event);
+    //print_mem_event(event);
 
+    fprintf(stdout, "[RECORD] Starting VMI at %lld ns\n", ns_timer());
     status = vmi_step_event(vmi, event, event->vcpu_id, 1, step_callback);
     //DEBUG_PAUSE();
     vmi_read_addr_va(vmi, g_vaddr, g_pid, &canary);
-    fprintf(stderr, "The canary value: %lu\n", canary);
+    //fprintf(stderr, "The canary value: %lu\n", canary);
     if (canary != 100) {
-      fprintf (stdout, "Wrong Canary Detected at Virtual Address: %lx\n Danger!!!\n Danger!!!\n Danger!!!", g_vaddr);
+      fprintf(stderr, "[RECORD] Ending VMI at %lld ns\n", ns_timer());
+      //fprintf (stdout, "Wrong Canary Detected at Virtual Address: %lx\n Danger!!!\n Danger!!!\n Danger!!!", g_vaddr);
       DEBUG_PAUSE();
     }
     status = vmi_clear_event(vmi, event, NULL);
