@@ -18,6 +18,7 @@
 addr_t *g_vaddr;
 unsigned long *g_pid;
 uint64_t canary = 0;
+int counter = 0;
 
 static int interrupted = 0;
 vmi_event_t mem_event;
@@ -132,12 +133,14 @@ mem_event_cb(vmi_instance_t vmi, vmi_event_t *event)
 {
     status_t status = VMI_SUCCESS;
 
-    fprintf(stdout, "[RECORD] Good events at %lld ns\n", ns_timer());
+    counter++;
+    //fprintf(stdout, "[RECORD] Good events at %lld ns\n", ns_timer());
     status = vmi_step_event(vmi, event, event->vcpu_id, 1, step_callback);
     vmi_read_addr_va(vmi, g_vaddr, g_pid, &canary);
     //fprintf(stderr, "The canary value: %lu\n", canary);
     if (canary != 100) {
           fprintf(stderr, "[RECORD] Ending VMI at %lld ns\n", ns_timer());
+          fprintf(stderr, "[Count] There are %d good events detected.\n", counter);
           fprintf (stdout, "Wrong Canary Detected at Virtual Address: %lx\n Danger!!!\n Danger!!!\n Danger!!!", g_vaddr);
           status = vmi_pause_vm(vmi);
         if (status == VMI_FAILURE) {
@@ -145,8 +148,10 @@ mem_event_cb(vmi_instance_t vmi, vmi_event_t *event)
             return 1;
         } else {
             fprintf(stdout, "Pause VM success! :) \n");
+            return status;
         }
     }
+
     status = vmi_clear_event(vmi, event, NULL);
     if (status == VMI_FAILURE) {
         fprintf(stdout, "Failed to clear mem event in cb...DIE! %m\n");

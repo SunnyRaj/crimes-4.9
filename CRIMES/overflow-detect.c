@@ -134,7 +134,7 @@ int main (int argc, char **argv)
 
         if (canary != 100)
         {
-            printf("The value at virtual address: %lu is: %lu\n", vaddr, canary);
+            //printf("The value at virtual address: %lu is: %lu\n", vaddr, canary);
             fprintf(stdout, "[TIMESTAMP] Canary address violated %lld ns\n", ns_timer());
             write(vmi_write_fd, "Bad", 3);             //Write to Pipe 2
             fprintf(stderr, "Overflow Detected\n");
